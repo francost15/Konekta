@@ -10,13 +10,17 @@ import { useUser } from '@clerk/nextjs';
 import { MapSection } from '@/components/Dashboard/MapSection';
 import { RoutesSection } from '@/components/Dashboard/RoutesSection';
 
+// Definir la interfaz para la referencia
+interface RoutesSectionHandle {
+  openItineraryModal: () => void;
+}
+
 export default function Dashboard() {
   const [userName, setUserName] = useState('viajero');
   const { isLoaded, user } = useUser();
   
-  // Referencias para el modal de itinerarios
-  const routesSectionRef = useRef<any>(null);
-  const [destination, setDestination] = useState('');
+  // Referencias para el modal de itinerarios con tipo específico
+  const routesSectionRef = useRef<RoutesSectionHandle>(null);
   
   useEffect(() => {
     // Actualizar el nombre del usuario cuando Clerk haya cargado los datos

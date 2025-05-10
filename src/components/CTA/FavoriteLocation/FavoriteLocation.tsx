@@ -1,8 +1,4 @@
-interface Props {
-  fadeInUp?: any;
-  staggerContainer?: any;
-}
-export const FavoriteLocation = ({fadeInUp,staggerContainer}:Props) => {
+export const FavoriteLocation = () => {
   return (
     <section className="py-20 md:py-28 px-6 relative overflow-hidden">
       <div className="container mx-auto text-center mb-16">

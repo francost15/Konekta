@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, MapPin, Calendar, Star, Search, Map as MapIcon, Navigation, Filter } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { getPopularDestinations, searchRoutes, RouteData } from '@/lib/api/geoapify';
 
 // Carga dinámica del componente de mapa para evitar problemas con SSR
@@ -267,9 +268,11 @@ export default function RoutesPage() {
                       {route.imageUrl ? (
                         <div className="relative h-40 w-full overflow-hidden">
                           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent z-10"></div>
-                          <img 
+                          <Image 
                             src={route.imageUrl} 
                             alt={route.title} 
+                            width={500}
+                            height={300}
                             className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                         </div>

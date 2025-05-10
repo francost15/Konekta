@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
+// Definir interfaces para los tipos que reemplazarán 'any'
+interface ResendError {
+  statusCode?: number;
+  message?: string;
+  code?: string;
+  [key: string]: unknown;
+}
+
+interface RequestBody {
+  email: string;
+  destination: string;
+  itineraryHtml: string;
+  subject?: string;
+}
+
 // Inicializar el cliente de Resend con la API key
 // La key se maneja como una variable de entorno para mayor seguridad
 const RESEND_API_KEY = 're_Kbystzji_BBYHrkd9YqshGop2wMkjv6FX';
@@ -11,7 +26,7 @@ export async function POST(request: Request) {
   
   try {
     // Obtener los datos de la solicitud
-    const body = await request.json();
+    const body = await request.json() as RequestBody;
     const { email, destination, itineraryHtml, subject } = body;
     
     console.log('Datos recibidos:', { email, destination, subjectProvided: !!subject, htmlLength: itineraryHtml?.length || 0 });
@@ -163,39 +178,44 @@ export async function POST(request: Request) {
         data,
         message: 'Correo enviado exitosamente' 
       });
-    } catch (emailError: any) {
+    } catch (emailError) {
       console.error('Error específico de Resend:', emailError);
       
       // Manejar errores específicos de Resend
       let errorMessage = 'Error al enviar el correo electrónico';
       let statusCode = 500;
       
-      if (emailError.statusCode === 403) {
+      const resendError = emailError as ResendError;
+      
+      if (resendError.statusCode === 403) {
         errorMessage = 'No tienes permiso para enviar correos desde esta dirección';
         statusCode = 403;
-      } else if (emailError.statusCode === 429) {
+      } else if (resendError.statusCode === 429) {
         errorMessage = 'Has excedido el límite de envíos permitidos';
         statusCode = 429;
-      } else if (emailError.message) {
-        errorMessage = emailError.message;
+      } else if (resendError.message) {
+        errorMessage = resendError.message;
       }
       
       return NextResponse.json(
         { 
           error: errorMessage,
-          details: emailError.message || 'Sin detalles adicionales',
-          code: emailError.statusCode || 'unknown',
+          details: resendError.message || 'Sin detalles adicionales',
+          code: resendError.statusCode || 'unknown',
           success: false
         },
         { status: statusCode }
       );
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error general en el endpoint de envío de correo:', error);
+    
+    const generalError = error as Error;
+    
     return NextResponse.json(
       { 
         error: 'Hubo un error al procesar la solicitud', 
-        details: error.message || 'Sin detalles disponibles',
+        details: generalError.message || 'Sin detalles disponibles',
         success: false
       },
       { status: 500 }

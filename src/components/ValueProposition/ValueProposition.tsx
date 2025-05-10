@@ -4,17 +4,17 @@ import { MapPin, Users, Leaf, Sparkles } from 'lucide-react';
 interface FeatureCardProps {
   icon: React.ElementType; 
   title: string;
-  children: React.ReactNode;
+  description: string;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, children }) => {
+const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, description }) => {
   return (
     <div className="bg-white rounded-xl p-6 text-center shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 animate-fadeInUp">
       <div className="inline-flex items-center justify-center p-3 bg-emerald-100 rounded-full mb-4">
         <Icon className="w-6 h-6 text-emerald-600" />
       </div>
       <h3 className="text-lg font-semibold mb-2 text-gray-800">{title}</h3>
-      <p className="text-sm text-gray-600 leading-relaxed">{children}</p>
+      <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
     </div>
   );
 };
@@ -47,7 +47,7 @@ export const ValueProposition = () => {
             key={index}
             icon={feature.icon}
             title={feature.title}
-            children={feature.description}
+            description={feature.description}
           />
         ))}
       </div>

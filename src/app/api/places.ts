@@ -14,6 +14,32 @@ interface PlaceResponse {
   };
 }
 
+// Interfaz para el resultado de la API de Google Places
+interface GooglePlacesResult {
+  place_id: string;
+  name: string;
+  vicinity: string;
+  photos?: Array<{
+    photo_reference: string;
+    html_attributions: string[];
+    height: number;
+    width: number;
+  }>;
+  rating?: number;
+  types?: string[];
+  opening_hours?: {
+    open_now: boolean;
+    weekday_text?: string[];
+  };
+}
+
+// Interfaz para la respuesta de la API de Google Places
+interface GooglePlacesResponse {
+  status: string;
+  error_message?: string;
+  results: GooglePlacesResult[];
+}
+
 /**
  * Busca lugares cercanos basados en palabras clave o ubicación
  * 
@@ -57,7 +83,7 @@ export async function GET(req: NextRequest) {
 
     // Realizar solicitud a Google Places API
     const response = await fetch(url);
-    const data = await response.json();
+    const data: GooglePlacesResponse = await response.json();
 
     if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
       return NextResponse.json(
@@ -67,15 +93,15 @@ export async function GET(req: NextRequest) {
     }
 
     // Formatear respuesta
-    const places: PlaceResponse[] = (data.results || []).map((place: any) => ({
+    const places: PlaceResponse[] = (data.results || []).map((place: GooglePlacesResult) => ({
       id: place.place_id,
       name: place.name,
       address: place.vicinity,
-      photos: place.photos ? place.photos.map((photo: any) => 
+      photos: place.photos ? place.photos.map((photo) => 
         `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY}`
       ) : [],
-      rating: place.rating,
-      types: place.types,
+      rating: place.rating || 0,
+      types: place.types || [],
       opening_hours: place.opening_hours,
     }));
 

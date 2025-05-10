@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Star, MapPin, Calendar, Loader2, Globe, Navigation, ArrowRight, ExternalLink, Search, X, Printer, Mail, CheckCircle } from 'lucide-react';
+import { ChevronRight, Star, MapPin, Calendar, Loader2, Globe, Navigation, ArrowRight, X, Mail, CheckCircle } from 'lucide-react';
 import { generateItinerary } from '@/services/openai';
+import Image from 'next/image';
 
 interface Route {
   id: string;
@@ -25,11 +26,45 @@ interface RoutesSectionProps {
 }
 
 // Quiz para personalizar itinerario
-interface QuizQuestion {
+interface QuizOption {
+  value: string;
+  label: string;
+  icon?: string;
+}
+
+interface QuizQuestionBase {
   id: string;
   question: string;
-  options: { value: string; label: string }[];
+  required?: boolean;
 }
+
+interface CheckboxQuestion extends QuizQuestionBase {
+  type: 'checkbox';
+  options: QuizOption[];
+  maxSelections?: number;
+}
+
+interface RadioQuestion extends QuizQuestionBase {
+  type: 'radio';
+  options: QuizOption[];
+}
+
+interface SliderQuestion extends QuizQuestionBase {
+  type: 'slider';
+  min: number;
+  max: number;
+  minLabel: string;
+  maxLabel: string;
+}
+
+interface TextQuestion extends QuizQuestionBase {
+  type: 'text';
+}
+
+type QuizQuestion = CheckboxQuestion | RadioQuestion | SliderQuestion | TextQuestion;
+
+// Tipos de respuestas del cuestionario
+type QuestionAnswer = string | string[] | number;
 
 // Lista extendida de destinos populares para selección aleatoria
 const POPULAR_DESTINATIONS = [
@@ -51,7 +86,7 @@ const TRAVEL_QUESTIONNAIRE = [
       {
         id: 'adventure-level',
         question: '¿Qué tan aventurero/a te consideras?',
-        type: 'slider',
+        type: 'slider' as const,
         min: 1,
         max: 5,
         minLabel: 'Relax total',
@@ -61,7 +96,7 @@ const TRAVEL_QUESTIONNAIRE = [
       {
         id: 'travel-motivations',
         question: '¿Qué te mueve más cuando viajas?',
-        type: 'checkbox',
+        type: 'checkbox' as const,
         maxSelections: 3,
         options: [
           { value: 'nature', label: 'Naturaleza', icon: '🌿' },
@@ -78,7 +113,7 @@ const TRAVEL_QUESTIONNAIRE = [
       {
         id: 'trip-occasion',
         question: '¿Con quién viajas?',
-        type: 'radio',
+        type: 'radio' as const,
         options: [
           { value: 'solo', label: 'Viajo solo/a', icon: '🧳' },
           { value: 'couple', label: 'En pareja', icon: '💑' },
@@ -97,7 +132,7 @@ const TRAVEL_QUESTIONNAIRE = [
       {
         id: 'budget-level',
         question: '¿Qué tan suelta está tu billetera en este viaje?',
-        type: 'slider',
+        type: 'slider' as const,
         min: 1,
         max: 5,
         minLabel: 'Cuidando cada centavo',
@@ -107,7 +142,7 @@ const TRAVEL_QUESTIONNAIRE = [
       {
         id: 'budget-priority',
         question: '¿En qué prefieres invertir más?',
-        type: 'checkbox',
+        type: 'checkbox' as const,
         maxSelections: 2,
         options: [
           { value: 'food', label: 'Gastronomía', icon: '🍷' },
@@ -121,7 +156,7 @@ const TRAVEL_QUESTIONNAIRE = [
       {
         id: 'travel-style',
         question: '¿Cuál es tu ritmo ideal de viaje?',
-        type: 'radio',
+        type: 'radio' as const,
         options: [
           { value: 'explorer', label: 'Ver todo lo posible', icon: '🔍' },
           { value: 'balanced', label: 'Un balance entre ver y disfrutar', icon: '⚖️' },
@@ -140,7 +175,7 @@ const TRAVEL_QUESTIONNAIRE = [
       {
         id: 'wake-up-time',
         question: '¿Qué tan temprano es demasiado temprano?',
-        type: 'slider',
+        type: 'slider' as const,
         min: 1,
         max: 5,
         minLabel: 'Después de las 9',
@@ -150,7 +185,7 @@ const TRAVEL_QUESTIONNAIRE = [
       {
         id: 'accommodation-type',
         question: '¿Qué tipo de alojamiento prefieres?',
-        type: 'radio',
+        type: 'radio' as const,
         options: [
           { value: 'hotel', label: 'Hotel estándar', icon: '🏨' },
           { value: 'boutique', label: 'Hotel boutique/con encanto', icon: '✨' },
@@ -163,7 +198,7 @@ const TRAVEL_QUESTIONNAIRE = [
       {
         id: 'sustainability',
         question: '¿Qué tan importante es la sostenibilidad en tu viaje?',
-        type: 'slider',
+        type: 'slider' as const,
         min: 1,
         max: 5,
         minLabel: 'No es prioridad',
@@ -174,70 +209,13 @@ const TRAVEL_QUESTIONNAIRE = [
   }
 ];
 
-// Preguntas para el quiz de viaje (version simplificada anterior)
-const QUIZ_QUESTIONS: QuizQuestion[] = [
-  {
-    id: 'travel-type',
-    question: '¿Qué tipo de viaje estás buscando?',
-    options: [
-      { value: 'cultural', label: 'Cultural y patrimonio' },
-      { value: 'adventure', label: 'Aventura y naturaleza' },
-      { value: 'relax', label: 'Relajación y bienestar' },
-      { value: 'food', label: 'Gastronomía y vida nocturna' },
-      { value: 'family', label: 'Familiar y actividades para niños' }
-    ]
-  },
-  {
-    id: 'duration',
-    question: '¿Cuántos días durará tu viaje?',
-    options: [
-      { value: 'weekend', label: 'Fin de semana (2-3 días)' },
-      { value: 'week', label: 'Una semana (4-7 días)' },
-      { value: 'twoWeeks', label: 'Dos semanas (8-15 días)' },
-      { value: 'month', label: 'Más de dos semanas' }
-    ]
-  },
-  {
-    id: 'budget',
-    question: '¿Cuál es tu presupuesto aproximado por persona?',
-    options: [
-      { value: 'economic', label: 'Económico (menos de $500)' },
-      { value: 'moderate', label: 'Moderado ($500-$1500)' },
-      { value: 'luxury', label: 'Premium ($1500-$3000)' },
-      { value: 'ultraluxury', label: 'Ultra Premium (más de $3000)' }
-    ]
-  },
-  {
-    id: 'activities',
-    question: '¿Qué actividades te interesan más?',
-    options: [
-      { value: 'sightseeing', label: 'Visitar monumentos y museos' },
-      { value: 'outdoor', label: 'Actividades al aire libre' },
-      { value: 'gastronomy', label: 'Experiencias gastronómicas' },
-      { value: 'shows', label: 'Espectáculos y entretenimiento' },
-      { value: 'shopping', label: 'Compras y mercados locales' }
-    ]
-  },
-  {
-    id: 'accommodation',
-    question: '¿Qué tipo de alojamiento prefieres?',
-    options: [
-      { value: 'hotel', label: 'Hotel' },
-      { value: 'airbnb', label: 'Apartamento/Airbnb' },
-      { value: 'hostel', label: 'Hostal/Albergue' },
-      { value: 'eco', label: 'Ecoturismo/Glamping' },
-      { value: 'luxury', label: 'Resort/Hotel boutique' }
-    ]
-  }
-];
-
 // Agregar el tipo para el handle de la ref
 export interface RoutesSectionHandle {
   openItineraryModal: (initialDestination?: string) => void;
 }
 
 export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>(
-  ({ initialRoutes }, ref) => {
+  function RoutesSection({ initialRoutes }, ref) {
     const [routes, setRoutes] = useState<Route[]>(initialRoutes || []);
     const [isLoading, setIsLoading] = useState(!initialRoutes);
     const [searchLocation, setSearchLocation] = useState('');
@@ -248,7 +226,7 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
     const [showItineraryModal, setShowItineraryModal] = useState(false);
     const [selectedDestination, setSelectedDestination] = useState('');
     const [currentQuestionnaireSection, setCurrentQuestionnaireSection] = useState(0);
-    const [questionnaireAnswers, setQuestionnaireAnswers] = useState<Record<string, any>>({});
+    const [questionnaireAnswers, setQuestionnaireAnswers] = useState<Record<string, string | string[] | number>>({});
     const [generatingItinerary, setGeneratingItinerary] = useState(false);
     const [generatedItinerary, setGeneratedItinerary] = useState<string | null>(null);
 
@@ -290,74 +268,74 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
       return shuffled.slice(0, 3);
     }, []);
 
+    // Función para obtener destinos populares - movida dentro del useEffect
     useEffect(() => {
+      const fetchPopularDestinations = async () => {
+        setIsLoading(true);
+        
+        try {
+          // Obtener 3 destinos aleatorios de nuestra lista preseleccionada
+          const selectedDestinations = getRandomDestinations();
+          
+          // Crear rutas con datos enriquecidos
+          const routesData = selectedDestinations.map(destination => {
+            return {
+              id: `route-${destination.name.toLowerCase().replace(/\s/g, '-')}`,
+              title: `Explora ${destination.name}`,
+              description: destination.description || `Descubre los lugares más emblemáticos de ${destination.name}`,
+              location: destination.name,
+              rating: 4.5 + Math.random() * 0.5, // Rating entre 4.5 y 5.0
+              imageUrl: destination.imageUrl,
+              duration: `${3 + Math.floor(Math.random() * 4)} días`, // Entre 3 y 6 días
+              coordinates: {
+                lat: destination.lat,
+                lon: destination.lon
+              }
+            };
+          });
+          
+          setRoutes(routesData);
+        } catch (error) {
+          console.error('Error al cargar destinos:', error);
+          // Cargar datos de respaldo en caso de error
+          setRoutes([
+            {
+              id: '1',
+              title: 'Mercados locales de Ciudad de México',
+              description: 'Explora los auténticos sabores y tradiciones en los mercados más emblemáticos',
+              location: 'Ciudad de México',
+              rating: 4.8,
+              imageUrl: 'https://images.unsplash.com/photo-1605216953515-e8cca5887718?q=80&w=1080&auto=format&fit=crop',
+              duration: '1 día'
+            },
+            {
+              id: '2',
+              title: 'Ruta de templos en Tokio',
+              description: 'Un recorrido espiritual por los templos más importantes de Tokio',
+              location: 'Tokio, Japón',
+              rating: 4.9,
+              imageUrl: 'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?q=80&w=1080&auto=format&fit=crop',
+              duration: '2 días'
+            },
+            {
+              id: '3',
+              title: 'Arquitectura modernista en Barcelona',
+              description: 'De Gaudí a la Barcelona contemporánea',
+              location: 'Barcelona, España',
+              rating: 4.7,
+              imageUrl: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?q=80&w=1080&auto=format&fit=crop',
+              duration: '3 días'
+            }
+          ]);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
       if (!initialRoutes) {
         fetchPopularDestinations();
       }
     }, [initialRoutes, getRandomDestinations]);
-
-    // Función para obtener destinos populares
-    const fetchPopularDestinations = async () => {
-      setIsLoading(true);
-      
-      try {
-        // Obtener 3 destinos aleatorios de nuestra lista preseleccionada
-        const selectedDestinations = getRandomDestinations();
-        
-        // Crear rutas con datos enriquecidos
-        const routesData = selectedDestinations.map(destination => {
-          return {
-            id: `route-${destination.name.toLowerCase().replace(/\s/g, '-')}`,
-            title: `Explora ${destination.name}`,
-            description: destination.description || `Descubre los lugares más emblemáticos de ${destination.name}`,
-            location: destination.name,
-            rating: 4.5 + Math.random() * 0.5, // Rating entre 4.5 y 5.0
-            imageUrl: destination.imageUrl,
-            duration: `${3 + Math.floor(Math.random() * 4)} días`, // Entre 3 y 6 días
-            coordinates: {
-              lat: destination.lat,
-              lon: destination.lon
-            }
-          };
-        });
-        
-        setRoutes(routesData);
-      } catch (error) {
-        console.error('Error al cargar destinos:', error);
-        // Cargar datos de respaldo en caso de error
-        setRoutes([
-          {
-            id: '1',
-            title: 'Mercados locales de Ciudad de México',
-            description: 'Explora los auténticos sabores y tradiciones en los mercados más emblemáticos',
-            location: 'Ciudad de México',
-            rating: 4.8,
-            imageUrl: 'https://images.unsplash.com/photo-1605216953515-e8cca5887718?q=80&w=1080&auto=format&fit=crop',
-            duration: '1 día'
-          },
-          {
-            id: '2',
-            title: 'Ruta de templos en Tokio',
-            description: 'Un recorrido espiritual por los templos más importantes de Tokio',
-            location: 'Tokio, Japón',
-            rating: 4.9,
-            imageUrl: 'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?q=80&w=1080&auto=format&fit=crop',
-            duration: '2 días'
-          },
-          {
-            id: '3',
-            title: 'Arquitectura modernista en Barcelona',
-            description: 'De Gaudí a la Barcelona contemporánea',
-            location: 'Barcelona, España',
-            rating: 4.7,
-            imageUrl: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?q=80&w=1080&auto=format&fit=crop',
-            duration: '3 días'
-          }
-        ]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
     // Buscar destinos usando Geocoding API
     const searchDestinations = async (e: React.FormEvent) => {
@@ -378,7 +356,7 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
           const placeName = location.properties.city || location.properties.state || location.properties.country || location.properties.name;
           
           // Intentar conseguir una imagen para el destino (en producción se podría usar una API de imágenes)
-          let imageUrl = `https://source.unsplash.com/random/600x400/?${encodeURIComponent(placeName)},travel`;
+          const imageUrl = `https://source.unsplash.com/random/600x400/?${encodeURIComponent(placeName)},travel`;
           
           // Crear un nuevo objeto de ruta para el lugar buscado
           const newRoute = {
@@ -426,10 +404,12 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
     };
 
     // Función para actualizar las respuestas del cuestionario
-    const handleQuestionAnswer = (sectionId: string, questionId: string, answer: any) => {
+    const handleQuestionAnswer = (sectionId: string, questionId: string, answer: QuestionAnswer) => {
+      // Crear una clave compuesta para almacenar la respuesta directamente en el objeto principal
+      const compositeKey = `${sectionId}_${questionId}`;
       setQuestionnaireAnswers(prev => ({
         ...prev,
-        [`${sectionId}_${questionId}`]: answer
+        [compositeKey]: answer
       }));
     };
 
@@ -455,19 +435,27 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
       try {
         // Preparar las preferencias basadas en las respuestas del cuestionario
         const preferences = {
-          // Convertir las respuestas del cuestionario a un formato adecuado para la API
-          destination: selectedDestination,
-          travelType: questionnaireAnswers['basics_travel-motivations'] || [],
-          adventureLevel: questionnaireAnswers['basics_adventure-level'] || 3,
-          travelStyle: questionnaireAnswers['preferences_travel-style'] || '',
-          budget: questionnaireAnswers['preferences_budget-level'] || 3,
-          budgetPriorities: questionnaireAnswers['preferences_budget-priority'] || [],
-          itineraryStyle: questionnaireAnswers['preferences_travel-style'] || 3,
-          wakeUpTime: questionnaireAnswers['experience_wake-up-time'] || 3,
-          environmentalImportance: questionnaireAnswers['experience_sustainability'] || 3,
-          tripGoal: questionnaireAnswers['basics_trip-occasion'] || '',
-          tripOccasion: questionnaireAnswers['basics_trip-occasion'] || '',
-          travelCompanions: questionnaireAnswers['basics_trip-occasion'] || ''
+          travelType: Array.isArray(questionnaireAnswers['basics_travel-motivations']) 
+            ? questionnaireAnswers['basics_travel-motivations'].join(',') 
+            : undefined,
+          adventureLevel: typeof questionnaireAnswers['basics_adventure-level'] === 'number' 
+            ? questionnaireAnswers['basics_adventure-level'] 
+            : undefined,
+          travelStyle: typeof questionnaireAnswers['preferences_travel-style'] === 'string' 
+            ? questionnaireAnswers['preferences_travel-style'] 
+            : undefined,
+          budget: typeof questionnaireAnswers['preferences_budget-level'] === 'string' 
+            ? questionnaireAnswers['preferences_budget-level']
+            : undefined,
+          budgetLevel: typeof questionnaireAnswers['preferences_budget-level'] === 'number' 
+            ? questionnaireAnswers['preferences_budget-level']
+            : undefined,
+          budgetPriorities: Array.isArray(questionnaireAnswers['preferences_budget-priority'])
+            ? questionnaireAnswers['preferences_budget-priority']
+            : undefined,
+          travelCompanions: typeof questionnaireAnswers['basics_trip-occasion'] === 'string'
+            ? questionnaireAnswers['basics_trip-occasion']
+            : undefined
         };
         
         // Llamar al servicio de OpenAI
@@ -482,7 +470,8 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
           content: itineraryContent,
           timestamp: new Date().toISOString(),
           params: {
-            ...preferences
+            destination: selectedDestination,
+            preferences
           }
         }));
         
@@ -496,7 +485,7 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
     };
 
     // Renderizar un campo de respuesta basado en su tipo con mejor UI
-    const renderAnswerField = (question: any, sectionId: string) => {
+    const renderAnswerField = (question: QuizQuestion, sectionId: string) => {
       const questionKey = `${sectionId}_${question.id}`;
       const currentValue = questionnaireAnswers[questionKey] || '';
       
@@ -506,7 +495,7 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
             <input 
               type="text"
               value={currentValue}
-              onChange={(e) => handleQuestionAnswer(sectionId, question.id, e.target.value)}
+              onChange={(e) => handleQuestionAnswer(sectionId, question.id, e.target.value as QuestionAnswer)}
               className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-black"
               placeholder="Escribe tu respuesta aquí..."
             />
@@ -525,12 +514,12 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
                   min={question.min}
                   max={question.max}
                   value={currentValue || question.min}
-                  onChange={(e) => handleQuestionAnswer(sectionId, question.id, parseInt(e.target.value))}
+                  onChange={(e) => handleQuestionAnswer(sectionId, question.id, parseInt(e.target.value) as QuestionAnswer)}
                   className="w-full h-2 accent-emerald-500 cursor-pointer"
                 />
                 <span className="w-8 h-8 flex items-center justify-center bg-emerald-500 text-white rounded-full font-medium text-sm shadow-sm transform transition-all duration-200" 
                   style={{
-                    transform: `scale(${1 + ((currentValue || question.min) - question.min) * 0.1})`,
+                    transform: `scale(${1 + ((Number(currentValue) || question.min) - question.min) * 0.1})`,
                   }}
                 >
                   {currentValue || question.min}
@@ -542,7 +531,7 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
         case 'radio':
           return (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-              {question.options.map((option: any) => (
+              {question.options.map((option: QuizOption) => (
                 <label 
                   key={option.value}
                   className={`flex items-center p-3 ${currentValue === option.value 
@@ -555,7 +544,7 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
                     name={question.id}
                     value={option.value}
                     checked={currentValue === option.value}
-                    onChange={() => handleQuestionAnswer(sectionId, question.id, option.value)}
+                    onChange={(e) => handleQuestionAnswer(sectionId, question.id, e.target.value as QuestionAnswer)}
                     className="sr-only" // Ocultar el radio original
                   />
                   <div className={`flex-shrink-0 w-5 h-5 rounded-full mr-3 flex items-center justify-center ${currentValue === option.value ? 'bg-emerald-500 border-transparent' : 'border-2 border-gray-300'}`}>
@@ -577,7 +566,7 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
           
           return (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-              {question.options.map((option: any) => {
+              {question.options.map((option: QuizOption) => {
                 const isChecked = selectedValues.includes(option.value);
                 return (
                   <label 
@@ -603,7 +592,7 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
                           newValues.shift();
                         }
                         
-                        handleQuestionAnswer(sectionId, question.id, newValues);
+                        handleQuestionAnswer(sectionId, question.id, newValues as QuestionAnswer);
                       }}
                       className="sr-only" // Ocultar el checkbox original
                     />
@@ -635,7 +624,7 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
           );
           
         default:
-          return <p className="text-red-500">Tipo de pregunta no soportado: {question.type}</p>;
+          return <p className="text-red-500">Tipo de pregunta no soportado: {(question as QuizQuestion).type}</p>;
       }
     };
 
@@ -647,39 +636,41 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
       return section.questions
         .filter(q => q.required)
         .every(q => {
-          const answer = questionnaireAnswers[`${section.id}_${q.id}`];
+          const compositeKey = `${section.id}_${q.id}`;
+          const answer = questionnaireAnswers[compositeKey];
           if (Array.isArray(answer)) return answer.length > 0;
           return answer !== undefined && answer !== '';
         });
     };
 
+    // En calculateProgress
+    const calculateProgress = () => {
+      let answeredRequired = 0;
+      let totalRequired = 0;
+      
+      TRAVEL_QUESTIONNAIRE.forEach(section => {
+        section.questions.forEach(question => {
+          if (question.required) {
+            totalRequired++;
+            const compositeKey = `${section.id}_${question.id}`;
+            const answer = questionnaireAnswers[compositeKey];
+            if (
+              (Array.isArray(answer) && answer.length > 0) ||
+              (typeof answer === 'number') ||
+              (typeof answer === 'string' && answer.trim() !== '')
+            ) {
+              answeredRequired++;
+            }
+          }
+        });
+      });
+      
+      return totalRequired > 0 ? (answeredRequired / totalRequired) * 100 : 0;
+    };
+
     // Renderizado del componente del cuestionario con mejor UI
     const renderItineraryModal = () => {
       if (!showItineraryModal) return null;
-      
-      // Calcular el progreso general del cuestionario
-      const calculateProgress = () => {
-        let answeredRequired = 0;
-        let totalRequired = 0;
-        
-        TRAVEL_QUESTIONNAIRE.forEach(section => {
-          section.questions.forEach(question => {
-            if (question.required) {
-              totalRequired++;
-              const answer = questionnaireAnswers[`${section.id}_${question.id}`];
-              if (
-                (Array.isArray(answer) && answer.length > 0) ||
-                (typeof answer === 'number') ||
-                (typeof answer === 'string' && answer.trim() !== '')
-              ) {
-                answeredRequired++;
-              }
-            }
-          });
-        });
-        
-        return totalRequired > 0 ? (answeredRequired / totalRequired) * 100 : 0;
-      };
       
       return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
@@ -976,9 +967,11 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
                           className="group relative h-24 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02]"
                         >
                           <div className="absolute inset-0">
-                            <img 
-                              src={dest.imageUrl} 
+                            <Image 
+                              src={dest.imageUrl || '/placeholder-destination.jpg'} 
                               alt={dest.name}
+                              width={400}
+                              height={300}
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
@@ -1087,9 +1080,7 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
     };
 
     // Añadir la función para enviar correo electrónico
-    const handleSendEmail = async (e?: React.FormEvent) => {
-      if (e) e.preventDefault();
-      
+    const handleSendEmail = async () => {
       if (!email.trim() || !selectedDestination) {
         setEmailError('Por favor ingresa un correo electrónico válido');
         return;
@@ -1379,24 +1370,20 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
                 onMouseLeave={() => setHoveredRoute(null)}
               >
                 <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 h-full flex flex-col border border-gray-100">
-                  {route.imageUrl ? (
-                    <div className="relative h-40 w-full overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10"></div>
-                      <img 
-                        src={route.imageUrl} 
-                        alt={route.title} 
-                        className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
-                      />
-                      <div className="absolute bottom-3 left-3 bg-black/30 backdrop-blur-sm text-white rounded-full px-3 py-1 text-xs font-medium z-20 flex items-center">
-                        <Navigation size={12} className="mr-1" />
-                        {route.location}
-                      </div>
+                  <div className="relative h-40 w-full overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10"></div>
+                    <Image 
+                      src={route.imageUrl || '/placeholder-destination.jpg'} 
+                      alt={route.title} 
+                      width={400}
+                      height={200}
+                      className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+                    <div className="absolute bottom-3 left-3 bg-black/30 backdrop-blur-sm text-white rounded-full px-3 py-1 text-xs font-medium z-20 flex items-center">
+                      <Navigation size={12} className="mr-1" />
+                      {route.location}
                     </div>
-                  ) : (
-                    <div className="h-40 w-full bg-emerald-100 flex items-center justify-center">
-                      <MapPin size={30} className="text-emerald-500" />
-                    </div>
-                  )}
+                  </div>
                   
                   <div className="p-4 flex flex-col flex-grow">
                     <div className="flex items-center justify-between mb-2">
@@ -1455,4 +1442,6 @@ export const RoutesSection = forwardRef<RoutesSectionHandle, RoutesSectionProps>
       </div>
     );
   }
-); 
+);
+
+RoutesSection.displayName = 'RoutesSection'; 

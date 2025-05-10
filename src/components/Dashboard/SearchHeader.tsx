@@ -1,7 +1,6 @@
-import { Search, Heart, MessageSquare, User, MapPin, Clock, X } from 'lucide-react';
+import { MapPin, Clock, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { useRouter as useNextRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 interface SearchHeaderProps {
   userName: string;
@@ -12,7 +11,7 @@ interface SearchHeaderProps {
 const MAX_RECENT_SEARCHES = 5;
 
 export const SearchHeader = ({ userName, onOpenItineraryModal }: SearchHeaderProps) => {
-  const router = typeof window !== 'undefined' ? useNextRouter() : null;
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [showRecentSearches, setShowRecentSearches] = useState(false);
@@ -63,16 +62,8 @@ export const SearchHeader = ({ userName, onOpenItineraryModal }: SearchHeaderPro
       // Pasar el destino al modal para que ya venga precargado
       onOpenItineraryModal(searchTerm);
     } else {
-      // Verificar si ya existe un itinerario en localStorage para este destino
-      const storageKey = `itinerary-${searchTerm}`;
-      const existingItinerary = localStorage.getItem(storageKey);
-      
       // Redirigir directamente a la página de itinerario con el destino
-      if (router) {
-        router.push(`/itinerary?destination=${encodeURIComponent(searchTerm)}`);
-      } else {
-        window.location.href = `/itinerary?destination=${encodeURIComponent(searchTerm)}`;
-      }
+      router.push(`/itinerary?destination=${encodeURIComponent(searchTerm)}`);
     }
     
     // Restaurar el estado después de un breve retraso
@@ -91,11 +82,7 @@ export const SearchHeader = ({ userName, onOpenItineraryModal }: SearchHeaderPro
       onOpenItineraryModal(term);
     } else {
       // Redirigir directamente a la página de itinerario
-      if (router) {
-        router.push(`/itinerary?destination=${encodeURIComponent(term)}`);
-      } else {
-        window.location.href = `/itinerary?destination=${encodeURIComponent(term)}`;
-      }
+      router.push(`/itinerary?destination=${encodeURIComponent(term)}`);
     }
     setShowRecentSearches(false);
     
@@ -115,11 +102,7 @@ export const SearchHeader = ({ userName, onOpenItineraryModal }: SearchHeaderPro
     if (onOpenItineraryModal) {
       onOpenItineraryModal(destination);
     } else {
-      if (router) {
-        router.push(`/itinerary?destination=${encodeURIComponent(destination)}`);
-      } else {
-        window.location.href = `/itinerary?destination=${encodeURIComponent(destination)}`;
-      }
+      router.push(`/itinerary?destination=${encodeURIComponent(destination)}`);
     }
     
     // Restaurar el estado después de un breve retraso

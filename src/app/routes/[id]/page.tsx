@@ -28,48 +28,49 @@ export default function RouteDetailPage() {
 
   useEffect(() => {
     if (id) {
+      // Definir la función fetchRouteDetails dentro del useEffect
+      const fetchRouteDetails = async () => {
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+          // Intentamos obtener los detalles de la ruta
+          const routeData = await getRouteDetails(id as string);
+          
+          if (routeData) {
+            setRouteDetails(routeData);
+          } else {
+            // Si no se encuentra la ruta específica, intentamos usar un destino predefinido
+            const fallbackDestinations = getFallbackDestinations();
+            const fallbackId = id as string;
+            
+            // Buscamos un destino cuyo ID coincida con el formato esperado
+            const matchingDestination = fallbackDestinations.find(dest => 
+              fallbackId === `route-${dest.location.toLowerCase().replace(/\s/g, '-')}`
+            );
+            
+            if (matchingDestination) {
+              setRouteDetails({
+                ...matchingDestination,
+                id: fallbackId,
+                places: [] // No tenemos lugares de interés para destinos predefinidos
+              });
+            } else {
+              // Si no encontramos coincidencia, configuramos un error
+              setError('No se pudo encontrar información para este destino.');
+            }
+          }
+        } catch (error) {
+          console.error('Error al obtener detalles de la ruta:', error);
+          setError('Ocurrió un error al cargar los detalles de la ruta. Por favor, intenta nuevamente.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
       fetchRouteDetails();
     }
   }, [id]);
-
-  const fetchRouteDetails = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Intentamos obtener los detalles de la ruta
-      const routeData = await getRouteDetails(id as string);
-      
-      if (routeData) {
-        setRouteDetails(routeData);
-      } else {
-        // Si no se encuentra la ruta específica, intentamos usar un destino predefinido
-        const fallbackDestinations = getFallbackDestinations();
-        const fallbackId = id as string;
-        
-        // Buscamos un destino cuyo ID coincida con el formato esperado
-        const matchingDestination = fallbackDestinations.find(dest => 
-          fallbackId === `route-${dest.location.toLowerCase().replace(/\s/g, '-')}`
-        );
-        
-        if (matchingDestination) {
-          setRouteDetails({
-            ...matchingDestination,
-            id: fallbackId,
-            places: [] // No tenemos lugares de interés para destinos predefinidos
-          });
-        } else {
-          // Si no encontramos coincidencia, configuramos un error
-          setError('No se pudo encontrar información para este destino.');
-        }
-      }
-    } catch (error) {
-      console.error('Error al obtener detalles de la ruta:', error);
-      setError('Ocurrió un error al cargar los detalles de la ruta. Por favor, intenta nuevamente.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handlePlaceSelect = (place: PlaceOfInterest) => {
     setSelectedPlace(place);

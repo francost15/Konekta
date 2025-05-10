@@ -2,23 +2,19 @@ import { MapPin, Star, MessageCircle } from 'lucide-react';
 import Image from 'next/image';
 
 interface GuideCardProps {
-  id: string;
   name: string;
   location: string;
   specialty: string;
   rating?: number;
-  reviewCount?: number;
   imageUrl?: string;
   available?: boolean;
 }
 
 export const GuideCard = ({ 
-  id,
   name, 
   location, 
   specialty, 
   rating = 4.8, 
-  reviewCount = 12,
   imageUrl,
   available = true
 }: GuideCardProps) => {
@@ -28,9 +24,11 @@ export const GuideCard = ({
         <div className="relative mr-3 flex-shrink-0">
           <div className="h-16 w-16 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-sm">
             {imageUrl ? (
-              <img 
+              <Image 
                 src={imageUrl} 
                 alt={name}
+                width={64}
+                height={64}
                 className="h-full w-full object-cover"
               />
             ) : (

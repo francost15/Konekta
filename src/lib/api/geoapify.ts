@@ -39,6 +39,28 @@ export interface RouteData {
 
 const PLACES_CATEGORIES = 'tourism.sights,catering.restaurant,tourism.attraction,accommodation.hotel,entertainment';
 
+// Agregar interfaces para las estructuras de datos de la API de Geoapify
+interface GeoapifyFeatureProperties {
+  name?: string;
+  city?: string;
+  country?: string;
+  state?: string;
+  lat: number;
+  lon: number;
+  formatted?: string;
+  address_line1?: string;
+  address_line2?: string;
+  categories?: string[];
+}
+
+interface GeoapifyFeature {
+  properties: GeoapifyFeatureProperties;
+  geometry: {
+    coordinates: number[];
+    type: string;
+  };
+}
+
 /**
  * Verifica si la clave de API está disponible
  */
@@ -79,7 +101,7 @@ export const searchPlacesByText = cache(async (text: string): Promise<Location[]
       return [];
     }
     
-    return data.features.map((feature: any) => ({
+    return data.features.map((feature: GeoapifyFeature) => ({
       name: feature.properties.name || feature.properties.city || feature.properties.country || 'Lugar desconocido',
       lat: feature.properties.lat,
       lon: feature.properties.lon,
@@ -126,7 +148,7 @@ export const getPlacesNearby = cache(async (lon: number, lat: number, radius: nu
       return generateFallbackPlaces(lon, lat);
     }
     
-    return data.features.map((feature: any) => ({
+    return data.features.map((feature: GeoapifyFeature) => ({
       name: feature.properties.name || 'Lugar de interés',
       description: feature.properties.address_line2 || '',
       category: feature.properties.categories?.[0]?.split('.').pop() || 'Atracción',
@@ -212,8 +234,8 @@ export const getPopularDestinations = cache(async (): Promise<RouteData[]> => {
     }
     
     // Transformamos la respuesta a nuestro formato
-    const destinations = data.features.map((feature: any) => {
-      const name = feature.properties.city || feature.properties.name || feature.properties.formatted.split(',')[0];
+    const destinations = data.features.map((feature: GeoapifyFeature) => {
+      const name = feature.properties.city || feature.properties.name || feature.properties.formatted?.split(',')[0] || 'Lugar desconocido';
       const lat = feature.properties.lat;
       const lon = feature.properties.lon;
       

@@ -6,11 +6,6 @@ interface StepItemProps {
   description: string;
 }
 
-interface HowWorkProps {
-  fadeInUp?: any;
-  staggerContainer?: any;
-}
-
 // Componente StepItem más limpio y tipado
 const StepItem: React.FC<StepItemProps> = ({ number, title, description }) => (
   <div
@@ -25,7 +20,7 @@ const StepItem: React.FC<StepItemProps> = ({ number, title, description }) => (
 );
 
 // Componente HowWork principal, tipado y simplificado
-export const HowWork: React.FC<HowWorkProps> = ({ fadeInUp, staggerContainer }) => {
+export const HowWork: React.FC = () => {
   const steps = [
     { number: "1", title: "Crea tu Perfil", description: "Cuéntanos tus intereses y estilo de viaje para personalizar tu experiencia." },
     { number: "2", title: "Explora y Conecta", description: "Descubre rutas únicas y contacta directamente con guías locales." },
@@ -53,7 +48,7 @@ export const HowWork: React.FC<HowWorkProps> = ({ fadeInUp, staggerContainer }) 
       <div
         className="container mx-auto grid md:grid-cols-3 gap-10 md:gap-12"
       >
-        {steps.map((step, index) => (
+        {steps.map(step => (
           <StepItem
             key={step.number}
             number={step.number}

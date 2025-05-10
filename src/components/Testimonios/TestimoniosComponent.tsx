@@ -1,8 +1,4 @@
-interface Props {
-  fadeInUp?: any;
-  staggerContainer?: any;
-}
-export const TestimoniosComponent = ({fadeInUp,staggerContainer}:Props) => {
+export const TestimoniosComponent = () => {
   return (
     <section id="testimonios" className="py-20 md:py-28 px-6 relative">
       <div className="container mx-auto text-center mb-16">

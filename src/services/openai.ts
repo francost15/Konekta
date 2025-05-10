@@ -18,6 +18,19 @@ interface GenerateItineraryParams {
   };
 }
 
+// Definimos una interfaz para los errores de OpenAI
+interface OpenAIError extends Error {
+  response?: {
+    data?: {
+      error?: {
+        message?: string;
+      } | string;
+    };
+  };
+  status?: number;
+  statusText?: string;
+}
+
 /**
  * Genera un itinerario personalizado basado en las preferencias del usuario
  * utilizando la API de OpenAI
@@ -118,18 +131,24 @@ export async function generateItinerary({
       
       return completion.choices[0].message.content || '';
         
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error al llamar a la API de OpenAI:', error);
+      const apiError = error as OpenAIError;
       let errorMessage = 'No se pudo generar el itinerario. Por favor, intenta de nuevo más tarde.';
       
       // Extraer mensaje específico de error si está disponible
-      if (error.message) {
-        errorMessage = `Error: ${error.message}`;
+      if (apiError.message) {
+        errorMessage = `Error: ${apiError.message}`;
       }
       
       // Extraer error más específico de la API si está disponible
-      if (error.response && error.response.data && error.response.data.error) {
-        errorMessage = `Error de OpenAI: ${error.response.data.error.message || error.response.data.error}`;
+      if (apiError.response?.data?.error) {
+        const errorData = apiError.response.data.error;
+        if (typeof errorData === 'string') {
+          errorMessage = `Error de OpenAI: ${errorData}`;
+        } else if (errorData.message) {
+          errorMessage = `Error de OpenAI: ${errorData.message}`;
+        }
       }
       
       throw new Error(errorMessage);

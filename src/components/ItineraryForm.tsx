@@ -56,7 +56,7 @@ export const ItineraryForm = () => {
       setFormData({
         ...formData,
         [parent]: {
-          ...formData[parent as keyof FormData] as any,
+          ...formData[parent as keyof FormData] as Record<string, string | number | string[]>,
           [child]: value,
         },
       });
@@ -96,7 +96,7 @@ export const ItineraryForm = () => {
       setFormData({
         ...formData,
         [parent]: {
-          ...formData[parent as keyof FormData] as any,
+          ...formData[parent as keyof FormData] as Record<string, string | number | string[]>,
           [child]: value,
         },
       });

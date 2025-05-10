@@ -1,7 +1,4 @@
-interface Props {
-  fadeInUp?: any;
-}
-export const CtaFooter = ({fadeInUp}: Props) => {
+export const CtaFooter = () => {
   return (
     <section className="py-20 md:py-28 px-6 relative overflow-hidden group">
       <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-emerald-500 z-10"></div>

@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, Calendar, Globe, MapPin, Share2, Bookmark, Printer, Info, Utensils, Bed, Banknote, Car, Camera, Sun, Umbrella, Moon, Link as LinkIcon, Tag, CheckCircle, Compass, ChevronRight, Shield, Users, ExternalLink, Mail, X } from 'lucide-react';
+import { ArrowLeft, Calendar, Globe, MapPin, Share2, Bookmark, Printer, Info, Utensils, Bed, Banknote, Car, Camera, Sun, Umbrella, Moon, Link as LinkIcon, CheckCircle, Compass, ChevronRight, Shield, Users, ExternalLink, Mail, X } from 'lucide-react';
 import Link from 'next/link';
 import { generateItinerary } from '@/services/openai';
 
@@ -174,29 +174,8 @@ const ItineraryDay = ({ title, content, index }: { title: string, content: strin
   );
 };
 
-// Componente para mostrar una recomendación con enlaces
-const Recommendation = ({ title, description, link }: { title: string, description: string, link?: string }) => {
-  return (
-    <div className="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-all bg-white mb-3">
-      <div className="flex justify-between items-start">
-        <h4 className="font-medium text-black">{title}</h4>
-        {link && (
-          <a 
-            href={link} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-emerald-600 hover:text-emerald-700 flex items-center text-sm"
-          >
-            <LinkIcon size={14} className="mr-1" /> Sitio web
-          </a>
-        )}
-      </div>
-      <p className="text-gray-700 mt-1">{description}</p>
-    </div>
-  );
-};
-
-export default function ItineraryPage() {
+// Componente para el contenido principal que usa useSearchParams
+function ItineraryContent() {
   const searchParams = useSearchParams();
   const [itineraryContent, setItineraryContent] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -360,13 +339,10 @@ export default function ItineraryPage() {
       const tempContent = content.slice(); // Crear una copia para cada intento
       
       while ((dayMatch = pattern.exec(tempContent)) !== null) {
-        const dayNumber = dayMatch[1];
-        const dayContent = dayMatch[2]?.trim() || dayMatch[0]?.trim();
-        
         const fullTitle = dayMatch[0].split('\n')[0].trim();
         tempDaysArray.push({
           title: fullTitle,
-          content: dayContent
+          content: dayMatch[2]?.trim() || dayMatch[0]?.trim()
         });
       }
       
@@ -380,7 +356,7 @@ export default function ItineraryPage() {
     if (daysArray.length === 0) {
       const sections = content.split(/(?=## )/g);
       
-      sections.forEach((section, index) => {
+      sections.forEach((section) => {
         if (section.trim() && section.toLowerCase().includes('día') || section.toLowerCase().includes('day')) {
           const lines = section.split('\n');
           const title = lines[0].trim();
@@ -1144,11 +1120,11 @@ export default function ItineraryPage() {
                     </div>
                     <div className="p-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {budget.split('\n').map((line, index) => {
+                        {budget.split('\n').map((line, i) => {
                           if (line.startsWith('- ')) {
                             const [category, amount] = line.replace('- ', '').split(':');
                             return (
-                              <div key={`budget-line-${index}`} className="bg-gray-50 p-4 rounded-lg">
+                              <div key={`budget-line-${i}`} className="bg-gray-50 p-4 rounded-lg">
                                 <p className="text-sm font-medium text-gray-900 mb-1">{category}</p>
                                 <p className="text-emerald-600 font-semibold">{amount}</p>
                               </div>
@@ -1298,5 +1274,20 @@ export default function ItineraryPage() {
       {/* Añadir modal de email */}
       {renderEmailModal()}
     </div>
+  );
+}
+
+// Componente principal que envuelve el contenido con Suspense
+export default function ItineraryPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">Cargando itinerario...</h2>
+        <p className="text-gray-500">Preparando tu plan de viaje personalizado</p>
+      </div>
+    }>
+      <ItineraryContent />
+    </Suspense>
   );
 } 

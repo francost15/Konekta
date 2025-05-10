@@ -72,6 +72,39 @@ export default function RouteMap({ routes, center, zoom = 2 }: RouteMapProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
+  // Actualizar el área visible del mapa para mostrar todos los marcadores
+  const updateMapBounds = useCallback(() => {
+    if (!map.current || routes.length === 0) return;
+    
+    try {
+      // Si solo hay una ruta, simplemente centramos el mapa en ella
+      if (routes.length === 1) {
+        map.current.flyTo({
+          center: [routes[0].coordinates.lon, routes[0].coordinates.lat],
+          zoom: 10,
+          essential: true
+        });
+        return;
+      }
+      
+      // Crear un bounds que incluya todas las rutas
+      const bounds = new maplibregl.LngLatBounds();
+      
+      routes.forEach(route => {
+        bounds.extend([route.coordinates.lon, route.coordinates.lat]);
+      });
+      
+      // Ajustar el mapa para mostrar todos los puntos
+      map.current.fitBounds(bounds, {
+        padding: 50,
+        maxZoom: 15,
+        duration: 1000
+      });
+    } catch (error) {
+      console.error('Error al ajustar el área visible del mapa:', error);
+    }
+  }, [routes]);
+  
   // Añadir marcadores cuando cambian las rutas o se inicializa el mapa
   const updateMarkers = useCallback(() => {
     if (!map.current || !mapInitialized) return;
@@ -106,40 +139,7 @@ export default function RouteMap({ routes, center, zoom = 2 }: RouteMapProps) {
     } catch (error) {
       console.error('Error al actualizar marcadores:', error);
     }
-  }, [routes, mapInitialized, center]);
-  
-  // Actualizar el área visible del mapa para mostrar todos los marcadores
-  const updateMapBounds = useCallback(() => {
-    if (!map.current || routes.length === 0) return;
-    
-    try {
-      // Si solo hay una ruta, simplemente centramos el mapa en ella
-      if (routes.length === 1) {
-        map.current.flyTo({
-          center: [routes[0].coordinates.lon, routes[0].coordinates.lat],
-          zoom: 10,
-          essential: true
-        });
-        return;
-      }
-      
-      // Crear un bounds que incluya todas las rutas
-      const bounds = new maplibregl.LngLatBounds();
-      
-      routes.forEach(route => {
-        bounds.extend([route.coordinates.lon, route.coordinates.lat]);
-      });
-      
-      // Ajustar el mapa para mostrar todos los puntos
-      map.current.fitBounds(bounds, {
-        padding: 50,
-        maxZoom: 15,
-        duration: 1000
-      });
-    } catch (error) {
-      console.error('Error al ajustar el área visible del mapa:', error);
-    }
-  }, [routes]);
+  }, [routes, mapInitialized, center, updateMapBounds]);
   
   // Actualizar marcadores cuando cambian las rutas
   useEffect(() => {

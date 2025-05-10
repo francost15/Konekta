@@ -120,7 +120,7 @@ export const GuidesSection = ({ initialGuides }: GuidesSectionProps) => {
         </div>
       ) : filteredGuides.length === 0 ? (
         <div className="text-center py-10 text-gray-500">
-          No se encontraron guías que coincidan con "{searchTerm}"
+          No se encontraron guías que coincidan con &ldquo;{searchTerm}&rdquo;
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

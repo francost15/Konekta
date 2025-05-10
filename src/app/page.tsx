@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { CtaFooter, FavoriteLocation, FooterComponent, HowWork, Navbar, TestimoniosComponent, ValueProposition } from "@/components";
+import { CtaFooter, FavoriteLocation, FooterComponent, HowWork, TestimoniosComponent, ValueProposition } from "@/components";
 
 const Home = () => {
   const headerRef = useRef<HTMLElement>(null);

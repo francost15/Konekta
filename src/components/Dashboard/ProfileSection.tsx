@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { User, Map, Heart, Calendar, Edit, ChevronRight, LogOut, Settings, Badge } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useUser, useClerk } from '@clerk/nextjs';
 
 export const ProfileSection = () => {
@@ -61,7 +62,13 @@ export const ProfileSection = () => {
         <div className="relative mb-3">
           <div className="h-20 w-20 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm overflow-hidden">
             {user && user.imageUrl ? (
-              <img src={user.imageUrl} alt={userName} className="h-full w-full object-cover" />
+              <Image 
+                src={user.imageUrl} 
+                alt={userName} 
+                width={80} 
+                height={80}
+                className="h-full w-full object-cover" 
+              />
             ) : (
               <User size={32} className="text-white" />
             )}
