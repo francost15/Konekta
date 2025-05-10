@@ -14,6 +14,7 @@ interface RequestBody {
   destination: string;
   itineraryHtml: string;
   subject?: string;
+  itineraryURL?: string; // Nueva propiedad para la URL completa
 }
 
 // Inicializar el cliente de Resend con la API key
@@ -27,9 +28,15 @@ export async function POST(request: Request) {
   try {
     // Obtener los datos de la solicitud
     const body = await request.json() as RequestBody;
-    const { email, destination, itineraryHtml, subject } = body;
+    const { email, destination, itineraryHtml, subject, itineraryURL } = body;
     
-    console.log('Datos recibidos:', { email, destination, subjectProvided: !!subject, htmlLength: itineraryHtml?.length || 0 });
+    console.log('Datos recibidos:', { 
+      email, 
+      destination, 
+      subjectProvided: !!subject, 
+      htmlLength: itineraryHtml?.length || 0,
+      itineraryURLProvided: !!itineraryURL
+    });
     
     if (!email || !itineraryHtml || !destination) {
       console.error('Faltan campos requeridos:', { email: !!email, destination: !!destination, itineraryHtml: !!itineraryHtml });
@@ -53,6 +60,9 @@ export async function POST(request: Request) {
     
     // Preparar el correo
     const emailSubject = subject || `Tu itinerario personalizado para ${destination}`;
+    
+    // Determinar la URL para el botón "Ver Itinerario Completo"
+    const itineraryFullURL = itineraryURL || `https://konekta.vercel.app/itinerary?destination=${encodeURIComponent(destination)}`;
     
     // Enviar el correo
     try {
@@ -154,7 +164,7 @@ export async function POST(request: Request) {
                 
                 <p>Para una mejor experiencia, puedes acceder a tu itinerario completo en nuestra plataforma:</p>
                 <p style="text-align: center;">
-                  <a href="https://konekta.vercel.app/itinerary?destination=${encodeURIComponent(destination)}" class="btn">Ver Itinerario Completo</a>
+                  <a href="${itineraryFullURL}" class="btn">Ver Itinerario Completo</a>
                 </p>
               </div>
               <div class="footer">
@@ -165,7 +175,7 @@ export async function POST(request: Request) {
           </html>
         `,
         // Opcional: añadir texto plano como fallback para clientes de correo que no soportan HTML
-        text: `Tu itinerario personalizado para ${destination}\n\nPara ver tu itinerario completo, visita: https://konekta.vercel.app/itinerary?destination=${encodeURIComponent(destination)}`
+        text: `Tu itinerario personalizado para ${destination}\n\nPara ver tu itinerario completo, visita: ${itineraryFullURL}`
       });
       
       if (data.error) {

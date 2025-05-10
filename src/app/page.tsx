@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { CtaFooter, FavoriteLocation, FooterComponent, HowWork, TestimoniosComponent, ValueProposition } from "@/components";
+import Link from 'next/link';
 
 const Home = () => {
   const headerRef = useRef<HTMLElement>(null);
@@ -13,10 +14,10 @@ const Home = () => {
         <div className="container mx-auto relative z-10 transition-all duration-500">
           <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-6 text-gray-900">
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-orange-400 animate-fadeInUp">
-              Conecta
-            </span>
-            <span className="animate-fadeInUp animate-delay-100 inline-block"> con lo </span>
-            <span className="animate-fadeInUp animate-delay-200 inline-block">real </span>
+              Konekta
+            </span>{' '}
+            <span className="animate-fadeInUp animate-delay-100 inline-block">con lo</span>{' '}
+            <span className="animate-fadeInUp animate-delay-200 inline-block">real</span>{' '}
             <span className="animate-fadeInUp animate-delay-300 inline-block">de viajar</span>
           </h1>
 
@@ -25,12 +26,11 @@ const Home = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/home">
             <button className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-8 py-4 rounded-full font-semibold shadow-md hover:shadow-lg transition-all duration-300 animate-fadeInUp animate-delay-500 hover:scale-105 active:scale-95">
               Descubre tu Próxima Aventura
             </button>
-            <button className="bg-white text-gray-700 border border-gray-200 px-8 py-4 rounded-full font-semibold shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-300 animate-fadeInUp animate-delay-500 hover:scale-105 active:scale-95">
-              Ver Destinos
-            </button>
+            </Link>
           </div>
         </div>
       </header>

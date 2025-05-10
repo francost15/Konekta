@@ -645,6 +645,22 @@ function ItineraryContent() {
         itineraryHtml += `<div class="day-title">Consejos prácticos</div>`;
         itineraryHtml += `<p>${practicalInfo.replace(/\n/g, '<br>')}</p>`;
       }
+
+      // Obtener la URL completa del itinerario actual con todos sus parámetros
+      const currentURL = window.location.href;
+      
+      // Añadir un enlace claro y destacado al itinerario completo
+      itineraryHtml += `
+        <div style="margin-top: 30px; padding: 15px; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #10b981;">
+          <p style="margin-bottom: 10px; font-weight: bold; color: #065f46;">Ver itinerario completo:</p>
+          <a href="${currentURL}" style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            Abrir mi itinerario personalizado para ${destination}
+          </a>
+          <p style="margin-top: 10px; font-size: 13px; color: #065f46;">
+            Haz clic en el botón de arriba para ver tu itinerario completo con todos los detalles, mapas y recomendaciones.
+          </p>
+        </div>
+      `;
       
       console.log('Preparando envío de correo a:', email);
       
@@ -658,7 +674,8 @@ function ItineraryContent() {
           email,
           destination,
           itineraryHtml,
-          subject: `Tu itinerario personalizado para ${destination}` 
+          subject: `Tu itinerario personalizado para ${destination}`,
+          itineraryURL: currentURL // Añadir la URL completa para usarla en la plantilla del correo
         }),
       });
       
